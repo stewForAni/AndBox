@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">AndBox</string>
+    <string name="file_create_success">file create success</string>
+    <string name="console_clear">Console Clear</string>
+    <string name="buffer_input_stream">BufferedInputStream </string>
+    <string name="file_input_stream">FileInputStream</string>
+    <string name="content">content</string>
+    <string name="data_input_stream">DatInputStream</string>
+    <string name="enter_something">enter something</string>
+    <string name="byte_length">byte length</string>
 </resources>
