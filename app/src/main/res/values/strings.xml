@@ -8,4 +8,5 @@
     <string name="data_input_stream">DatInputStream</string>
     <string name="enter_something">enter something</string>
     <string name="byte_length">byte length</string>
+    <string name="file_output_stream">FileOutputStream</string>
 </resources>
