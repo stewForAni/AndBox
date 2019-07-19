@@ -24,6 +24,10 @@
         <activity
             android:name=".IOTestActivity"
             android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".BottomViewActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

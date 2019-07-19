@@ -35,6 +35,7 @@ public class AndAdapter extends RecyclerView.Adapter<AndAdapter.AndViewHolder> i
 
     @Override
     public void onBindViewHolder(@NonNull AndViewHolder andViewHolder, int i) {
+        builder.setLength(0);
         andViewHolder.name.setText(builder.append(i+1).append("-").append(data.get(i)));
         andViewHolder.itemView.setOnClickListener(this);
         andViewHolder.itemView.setTag(i);

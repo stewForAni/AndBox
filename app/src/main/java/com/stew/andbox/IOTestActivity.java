@@ -16,6 +16,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintStream;
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -33,6 +39,16 @@ public class IOTestActivity extends AppCompatActivity {
     EditText editTextByte;
     @BindView(R.id.button_file_output_stream)
     Button buttonFileOutputStream;
+    @BindView(R.id.button_print_stream)
+    Button buttonPrintStream;
+    @BindView(R.id.button_Piped_input_output_stream)
+    Button buttonPipedInputOutputStream;
+    @BindView(R.id.button_object_output_stream)
+    Button buttonObjectOutputStream;
+    @BindView(R.id.button_object_input_stream)
+    Button buttonObjectInputStream;
+
+
     private String APP_ROOT_PATH;
     private TextView txConsole;
     private SimpleDateFormat format = new SimpleDateFormat("MM-dd/hh:mm:ss:SSS", Locale.US);
@@ -42,19 +58,27 @@ public class IOTestActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_io);
         ButterKnife.bind(this);
+
         APP_ROOT_PATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + getApplication().getPackageName() + "/";
         Button buttonFileInputStream = findViewById(R.id.button_file_input_stream);
         Button buttonBufferedInputStream = findViewById(R.id.button_buffer_input_stream);
         Button buttonClear = findViewById(R.id.button_clear);
         txConsole = findViewById(R.id.tx_console);
+
         File dir = new File(APP_ROOT_PATH);
         if (!dir.exists()) {
             dir.mkdirs();
         }
+
         buttonFileInputStream.setOnClickListener(v -> dealFileInputStream());
         buttonBufferedInputStream.setOnClickListener(v -> dealBufferedInputStream());
         buttonDataInputStream.setOnClickListener(v -> dealDataInputStream());
         buttonFileOutputStream.setOnClickListener(v -> dealFileOutputStream());
+        buttonPrintStream.setOnClickListener(v -> dealPrintStream());
+        buttonPipedInputOutputStream.setOnClickListener(v -> dealPipedStream());
+        buttonObjectOutputStream.setOnClickListener(v -> dealObjectOutputStream());
+        buttonObjectInputStream.setOnClickListener(v -> dealObjectInputStream());
+
         buttonClear.setOnClickListener(v -> {
             txConsole.setText("");
             _new = "Console:";
@@ -63,7 +87,7 @@ public class IOTestActivity extends AppCompatActivity {
 
     private void dealFileInputStream() {
 
-        if(TextUtils.isEmpty(editTextByte.getText())){
+        if (TextUtils.isEmpty(editTextByte.getText())) {
             return;
         }
 
@@ -88,7 +112,7 @@ public class IOTestActivity extends AppCompatActivity {
 
     private void dealBufferedInputStream() {
 
-        if(TextUtils.isEmpty(editTextByte.getText())){
+        if (TextUtils.isEmpty(editTextByte.getText())) {
             return;
         }
 
@@ -131,23 +155,121 @@ public class IOTestActivity extends AppCompatActivity {
 
     private void dealFileOutputStream() {
 
-        if(TextUtils.isEmpty(editText.getText())){
+        if (TextUtils.isEmpty(editText.getText())) {
             return;
         }
 
         File file = new File(APP_ROOT_PATH, "text.txt");
-        addDataFile(file);
+        addFile(file);
         try {
 
-            FileOutputStream fos = new FileOutputStream(file);
+            FileOutputStream fos = new FileOutputStream(file, true);
             String content = editText.getText().toString();
             dealConsoleStr(this.getString(R.string.content) + ":" + content);
+
+            //写入换行
+            String lineSeparator = System.getProperty("line.separator");
+            fos.write(lineSeparator.getBytes());
+
             fos.write(content.getBytes());
             fos.close();
             txConsole.setText(_new);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void dealPrintStream() {
+        File file = new File(APP_ROOT_PATH, "text.txt");
+        addFile(file);
+
+        try {
+            PrintStream prinStream = new PrintStream(file);
+            prinStream.print("hh");
+            prinStream.print("jj");
+            prinStream.print("kk");
+            prinStream.print("ll");
+            prinStream.close();
+            dealConsoleStr(this.getString(R.string.content) + ":" + new File(APP_ROOT_PATH + "text.txt").getAbsolutePath());
+            txConsole.setText(_new);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void dealPipedStream() {
+
+        PipedInputStream pis = new PipedInputStream();
+        PipedOutputStream pos = new PipedOutputStream();
+
+        try {
+            pos.connect(pis);
+            for (int i = 1; i <= 20; i++) {
+                pos.write((byte) i);
+            }
+            pos.close();
+
+            int data;
+            while ((data = pis.read()) != -1) {
+                dealConsoleStr(String.valueOf(data));
+            }
+            pis.close();
+            txConsole.setText(_new);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void dealObjectOutputStream() {
+
+        Person p1 = new Person("John", "Male", 1.7);
+        Person p2 = new Person("Wally", "Male", 1.7);
+        Person p3 = new Person("Katrina", "Female", 1.4);
+
+        File file = new File(APP_ROOT_PATH, "text.txt");
+        addFile(file);
+
+        try {
+
+            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+            oos.writeObject(p1);
+            oos.writeObject(p2);
+            oos.writeObject(p3);
+            oos.close();
+
+            dealConsoleStr(p1.toString());
+            dealConsoleStr(p2.toString());
+            dealConsoleStr(p3.toString());
+            txConsole.setText(_new);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void dealObjectInputStream() {
+        File file = new File(APP_ROOT_PATH+"text.txt");
+
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
+            Person p1 = (Person) ois.readObject();
+            Person p2 = (Person) ois.readObject();
+            Person p3 = (Person) ois.readObject();
+            ois.close();
+
+            dealConsoleStr(p1.toString());
+            dealConsoleStr(p2.toString());
+            dealConsoleStr(p3.toString());
+            txConsole.setText(_new);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -176,7 +298,7 @@ public class IOTestActivity extends AppCompatActivity {
 
     private void addFile(File file) {
 
-        if(TextUtils.isEmpty(editText.getText())){
+        if (TextUtils.isEmpty(editText.getText())) {
             return;
         }
 

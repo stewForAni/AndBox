@@ -7,6 +7,12 @@
     <string name="content">content</string>
     <string name="data_input_stream">DatInputStream</string>
     <string name="enter_something">enter something</string>
-    <string name="byte_length">byte length</string>
+    <string name="byte_length">b.len</string>
     <string name="file_output_stream">FileOutputStream</string>
+    <string name="print_stream">PrintStream</string>
+    <string name="piped_input_output_stream">PipedInputStream / PipedOutputStream</string>
+    <string name="hide_popup_window">hide popup window</string>
+    <string name="show_popup_window">show popup window</string>
+    <string name="object_output_stream">ObjectOutputStream</string>
+    <string name="object_input_stream">ObjectInputStream</string>
 </resources>

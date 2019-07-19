@@ -33,12 +33,12 @@ public class MainActivity extends AppCompatActivity {
 
         ArrayList<String> data = new ArrayList<>();
         data.add("Java IO Test");
+        data.add("BottomView");
 
         LinearLayoutManager manager = new LinearLayoutManager(this);
         andList.setLayoutManager(manager);
         AndAdapter andAdapter = new AndAdapter(this, data);
         andList.setAdapter(andAdapter);
-
         andAdapter.setItemClickListener(this::dealItemClick);
     }
 
@@ -47,6 +47,12 @@ public class MainActivity extends AppCompatActivity {
             case 0:{
                 startActivity(new Intent(MainActivity.this,IOTestActivity.class));
             }
+            break;
+
+            case 1:{
+                startActivity(new Intent(MainActivity.this, BottomViewActivity.class));
+            }
+            break;
         }
     }
 
