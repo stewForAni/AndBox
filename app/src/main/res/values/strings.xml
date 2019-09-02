@@ -15,4 +15,6 @@
     <string name="show_popup_window">show popup window</string>
     <string name="object_output_stream">ObjectOutputStream</string>
     <string name="object_input_stream">ObjectInputStream</string>
+    <string name="button_writer_reader">Writer / Reader / InputStreamReader</string>
+    <string name="random_access_file">RandomAccessFile</string>
 </resources>

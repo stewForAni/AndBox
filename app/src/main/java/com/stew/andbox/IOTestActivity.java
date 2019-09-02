@@ -9,19 +9,25 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -47,6 +53,10 @@ public class IOTestActivity extends AppCompatActivity {
     Button buttonObjectOutputStream;
     @BindView(R.id.button_object_input_stream)
     Button buttonObjectInputStream;
+    @BindView(R.id.button_writer_reader)
+    Button buttonWriterReader;
+    @BindView(R.id.button_random_access_file)
+    Button buttonRandomAccessFile;
 
 
     private String APP_ROOT_PATH;
@@ -78,6 +88,8 @@ public class IOTestActivity extends AppCompatActivity {
         buttonPipedInputOutputStream.setOnClickListener(v -> dealPipedStream());
         buttonObjectOutputStream.setOnClickListener(v -> dealObjectOutputStream());
         buttonObjectInputStream.setOnClickListener(v -> dealObjectInputStream());
+        buttonWriterReader.setOnClickListener(v -> dealWriterReader());
+        buttonRandomAccessFile.setOnClickListener(v -> dealRandomAccessFile());
 
         buttonClear.setOnClickListener(v -> {
             txConsole.setText("");
@@ -253,7 +265,7 @@ public class IOTestActivity extends AppCompatActivity {
     }
 
     private void dealObjectInputStream() {
-        File file = new File(APP_ROOT_PATH+"text.txt");
+        File file = new File(APP_ROOT_PATH + "text.txt");
 
         try {
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
@@ -272,6 +284,88 @@ public class IOTestActivity extends AppCompatActivity {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    private void dealWriterReader() {
+        File file = new File(APP_ROOT_PATH, "text.txt");
+        addFile(file);
+
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+            writer.append("one");
+            writer.newLine();
+            writer.append("two");
+            writer.newLine();
+            writer.append("three");
+            writer.newLine();
+            writer.append("four");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String text;
+            while ((text = reader.readLine()) != null) {
+                dealConsoleStr(text);
+            }
+            txConsole.setText(_new);
+            reader.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            InputStream is = new FileInputStream(file);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String text;
+            while ((text = reader.readLine()) != null) {
+                dealConsoleStr(text);
+            }
+            txConsole.setText(_new);
+            reader.close();
+            is.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void dealRandomAccessFile() {
+
+        File file = new File(APP_ROOT_PATH, "text.txt");
+        addFile(file);
+
+        RandomAccessFile raf;
+        try {
+            raf = new RandomAccessFile(file, "rw");
+            raf.writeInt(0);
+            raf.writeUTF("Hello world!");
+            raf.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            raf = new RandomAccessFile(file, "rw");
+            dealConsoleStr(raf.readInt() + "");
+            dealConsoleStr(raf.readUTF());
+            txConsole.setText(_new);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private void addDataFile(File file) {
