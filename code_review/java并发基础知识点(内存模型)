@@ -349,6 +349,7 @@ happens-before原则定义如下：
 2. 两个操作之间存在happens-before关系，并不意味着一定要按照happens-before原则制定的顺序来执行。如果重排序之后的执行结果与按照happens-before关系来执行的结果一致，那么这种重排序并不非法。
 
 
+**************************************************重要**************************************************
 
 下面是happens-before原则规则：
 
@@ -361,6 +362,7 @@ happens-before原则定义如下：
 7.线程终结规则：线程中所有的操作都先行发生于线程的终止检测，我们可以通过Thread.join()方法结束、Thread.isAlive()的返回值手段检测到线程已经终止执行；
 8.对象终结规则：一个对象的初始化完成先行发生于他的finalize()方法的开始；
 
+**************************************************重要**************************************************
 
 8条规则总结于下：
 
@@ -569,7 +571,7 @@ public class RecordExample2 {
                   |
 	              |
   a = 1           |
-                  |
+                  |  90
                   |
 -------------------------------------------------------------
 
@@ -582,3 +584,404 @@ public class RecordExample2 {
 [总结]
 
 通过上面的分析，重排序不会影响单线程环境的执行结果，但是会破坏多线程的执行语义。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/-----------------------------------------------------------------------------------/
+/-----------------------------------我是分割线--------------------------------------/
+/-----------------------------------------------------------------------------------/
+
+[Java内存模型之分析volatile（详解）]
+
+
+前篇博客[深入分析volatile的实现原理]中已经阐述了volatile的特性：
+
+
+1.volatile可见性；对一个volatile的读，总可以看到对这个变量最终的写；
+
+2.volatile原子性；volatile对单个读/写具有原子性（32位Long、Double），但是复合操作除外，例如i++;
+
+3.JVM底层采用“内存屏障”来实现volatile语义
+
+
+
+/-----------------------------------------------------------------------------------/
+
+[volatile与happens-before]
+
+下面用例子来分析volatile变量的读写建立的happens-before关系。
+
+-------------------------------------------------------------
+public class VolatileTest {
+
+    int i = 0;
+    volatile boolean flag = false;
+
+    //Thread A
+    public void write(){
+        i = 2;              //1
+        flag = true;        //2
+    }
+
+    //Thread B
+    public void read(){
+        if(flag){                                   //3
+            System.out.println("---i = " + i);      //4
+        }
+    }
+}
+-------------------------------------------------------------
+依据happens-before原则，就上面程序得到如下关系：
+
+依据happens-before程序顺序原则：1 happens-before 2、3 happens-before 4；
+根据happens-before的volatile原则：2 happens-before 3；
+根据happens-before的传递性：1 happens-before 4  (1对于4 可见)
+
+volatile除了保证可见性外，还有就是禁止重排序。
+所以A线程在写volatile变量之前所有可见的共享变量，在线程B读同一个volatile变量后，将立即变得对线程B可见。
+
+
+
+
+
+
+
+/-----------------------------------------------------------------------------------/
+
+[volataile的内存语义及其实现]
+
+在JMM中，线程之间的通信采用共享内存来实现的。volatile的内存语义是：
+
+当写一个volatile变量时，JMM会把该线程对应的本地内存中的共享变量值立即刷新到主内存中。
+
+当读一个volatile变量时，JMM会把该线程对应的本地内存设置为无效，直接从主内存中读取共享变量。
+
+所以volatile的写内存语义是直接刷新到主内存中，读的内存语义是直接从主内存中读取。
+那么volatile的内存语义是如何实现的呢？
+对于一般的变量则会被重排序，而对于volatile则不能，这样会影响其内存语义，所以为了实现volatile的内存语义JMM会限制重排序。
+其重排序规则如下：
+
+1.当第一个操作为volatile读，则不管第二个操作是啥，都不能重排序。这个操作确保volatile读之后的操作不会被编译器重排序到volatile读之前；
+
+2.当第二个操作为volatile写，则不管第一个操作是啥，都不能重排序。这个操作确保volatile写之前的操作不会被编译器重排序到volatile写之后；
+
+3.当第一个操作volatile写，第二操作为volatile读时，不能重排序。
+
+
+
+
+volatile的底层实现是通过插入内存屏障，但是对于编译器来说，发现一个最优布置来最小化插入内存屏障的总数几乎是不可能的，所以，JMM采用了保守策略。如下：
+
+1.在每一个volatile写操作前面插入一个StoreStore屏障
+2.在每一个volatile写操作后面插入一个StoreLoad屏障
+3.在每一个volatile读操作后面插入一个LoadLoad屏障
+4.在每一个volatile读操作后面插入一个LoadStore屏障
+
+StoreStore屏障可以保证在volatile写之前，其前面的所有普通写操作都已经刷新到主内存中。
+
+StoreLoad屏障的作用是避免volatile写与后面可能有的volatile读/写操作重排序。
+
+LoadLoad屏障用来禁止处理器把上面的volatile读与下面的普通读重排序。
+
+LoadStore屏障用来禁止处理器把上面的volatile读与下面的普通写重排序。
+
+
+还是用VolatileTest来分析：
+-------------------------------------------------------------
+public class VolatileTest {
+
+    int i = 0;
+    volatile boolean flag = false;
+
+    //Thread A
+    public void write(){
+        i = 2;              //1
+        flag = true;        //2
+    }
+
+    //Thread B
+    public void read(){
+        if(flag){                                   //3
+            System.out.println("---i = " + i);      //4
+        }
+    }
+}
+-------------------------------------------------------------
+
+i = 2;                  //普通写
+
+插入StoreStore屏障      //禁止上面的普通写与下面的volatile写重排序
+
+flag = true             //Volatile写
+
+插入StoreLoad屏障       //禁止上面的volatile写下面可能有的volatile读/写重排序
+
+
+
+
+if(flag)                //Volatile读
+
+插入LoadLoad屏障        //禁止处理器把上面的volatile读与下面的普通读重排序
+
+LoadStore屏障           //禁止处理器把上面的volatile读与下面的普通写重排序
+
+System.out.println("---i = " + i);              //普通读
+
+-------------------------------------------------------------
+上面通过一个例子稍微演示了volatile指令的内存屏障图例。
+
+
+
+
+
+volatile的内存屏障插入策略非常保守，其实在实际中，只要不改变volatile写-读得内存语义，编译器可以根据具体情况优化，省略不必要的屏障。
+-------------------------------------------------------------
+public class VolatileBarrierExample {
+    int a = 0;
+    volatile int v1 = 1;
+    volatile int v2 = 2;
+
+    void readAndWrite(){
+        int i = v1;     //volatile读
+        int j = v2;     //volatile读
+        a = i + j;      //普通读
+        v1 = i + 1;     //volatile写
+        v2 = j * 2;     //volatile写
+    }
+}
+-------------------------------------------------------------
+
+没有优化的示例图 如下：
+
+int i = v1;
+
+LoadLoad屏障   （1）
+
+LoadStore屏障   （2）
+
+int j = v2;
+
+LoadLoad屏障   （3）
+
+LoadStore屏障   （4）
+
+a = i + j;(普通写)
+
+StoreStore屏障   （5）
+
+v1 = i + 1;
+
+StoreLoad屏障   （6）
+
+StoreStore屏障   （7）
+
+v2 = j * 2;
+
+StoreLoad屏障   （8）
+
+
+
+
+
+更具规则得出  236 可以省略
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/-----------------------------------------------------------------------------------/
+/-----------------------------------我是分割线--------------------------------------/
+/-----------------------------------------------------------------------------------/
+
+[Java内存模型之从JMM角度分析DCL（Double Check Lock 中卫双重检查锁定）]  
+
+单例模式里面的懒汉式：
+-------------------------------------------------------------
+public class Singleton {
+   private static Singleton singleton;
+
+   private Singleton(){}
+
+   public static Singleton getInstance(){
+       if(singleton == null){
+           singleton = new Singleton();
+       }
+
+       return singleton;
+   }
+} 
+-------------------------------------------------------------
+
+这种写法是错误的，因为它无法保证线程的安全性。优化如下：
+
+-------------------------------------------------------------
+public class Singleton {
+   private static Singleton singleton;
+
+   private Singleton(){}
+
+   public static synchronized Singleton getInstance(){
+       if(singleton == null){
+           singleton = new Singleton();
+       }
+
+       return singleton;
+   }
+}
+-------------------------------------------------------------
+
+优化非常简单，就是在getInstance方法上面做了同步，但是synchronized就会导致这个方法比较低效，导致程序性能下降
+
+-------------------------------------------------------------
+public class Singleton {
+   private static Singleton singleton;
+
+   private Singleton(){}
+
+   public static Singleton getInstance(){
+       if(singleton == null){                              // 1
+           synchronized (Singleton.class){                 // 2
+               if(singleton == null){                      // 3
+                   singleton = new Singleton();            // 4
+               }
+           }
+       }
+       return singleton;
+   }
+}
+-------------------------------------------------------------
+
+优点如下：
+
+1.如果检查第一个singleton不为null,则不需要执行下面的加锁动作，极大提高了程序的性能；
+
+2.如果第一个singleton为null,即使有多个线程同一时间判断，但是由于synchronized的存在，只会有一个线程能够创建对象；
+
+3.当第一个获取锁的线程创建完成后singleton对象后，其他的在第二次判断singleton一定不会为null，则直接返回已经创建好的singleton对象；、
+
+
+
+不过仍然错误！！
+
+
+创建对象过程，实例化一个对象要分为三个步骤：
+
+1.分配内存空间
+
+2.初始化对象
+
+3.将内存空间的地址赋值给对应的引用
+
+由于 步骤2和3 可能发生重排
+
+1.分配内存空间
+
+2.将内存空间的地址赋值给对应的引用
+
+3.初始化对象
+
+如果2、3发生了重排序就会导致第二个判断会出错，singleton != null，
+但是它其实仅仅只是一个地址而已，此时对象还没有被初始化，所以return的singleton对象是一个没有被初始化的对象。
+
+所以我们可以得出DCL错误根源在于步骤4：
+
+singleton = new Singleton();
+
+
+
+
+
+/-----------------------------------------------------------------------------------/
+
+[基于volatile解决方案（重要）]
+
+-------------------------------------------------------------
+public class Singleton {
+   //通过volatile关键字来确保安全
+   private volatile static Singleton singleton;
+
+   private Singleton(){}
+
+   public static Singleton getInstance(){
+       if(singleton == null){
+           synchronized (Singleton.class){
+               if(singleton == null){
+                   singleton = new Singleton();
+               }
+           }
+       }
+       return singleton;
+   }
+}
+-------------------------------------------------------------
+当singleton声明为volatile后，步骤2、步骤3就不会被重排序了，也就可以解决上面那问题了。
+
+
+
+[基于类初始化的解决方案]
+
+该解决方案的根本就在于：利用classloder的机制来保证初始化instance时只有一个线程。
+JVM在类初始化阶段会获取一个锁，这个锁可以同步多个线程对同一个类的初始化。
+
+-------------------------------------------------------------
+public class Singleton {
+   private static class SingletonHolder{
+       public static Singleton singleton = new Singleton();
+   }
+
+   public static Singleton getInstance(){
+       return SingletonHolder.singleton;
+   }
+}
+-------------------------------------------------------------
+
+
+
+Java语言规定，对于每一个类或者接口C,都有一个唯一的初始化锁LC与之相对应。从C到LC的映射，由JVM的具体实现去自由实现。
+JVM在类初始化阶段期间会获取这个初始化锁，并且每一个线程至少获取一次锁来确保这个类已经被初始化过了。
+
+
+线程A -------------->                                            1.分配内存空间
+        试图获取锁      ---------------------    线程A执行
+                        |class对象的初始化锁| ------------------> 2.设置singleton指向内存空间
+                        ---------------------
+                                                                 3.初始化对象
+线程B -------------->
+        试图获取锁
