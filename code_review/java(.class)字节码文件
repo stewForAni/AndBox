@@ -94,5 +94,15 @@ CA FE BA BE  |  00 00 00 34  |  00 24
 在字节码中共有14种类型的cp_info（查看【（字节码）各类型的cp_info】图片），每种类型的结构都是固定的。
 
 
-具体以CONSTANT_utf8_info为例，
+具体以CONSTANT_utf8_info为例
+查看【（字节码）CONSTANT_utf8_info的结构（左）及示例（右）】图片
+
+第一个字节"tag"，值为“01”，长度：1字节。
+第二个字节"length"，值为该utf8字符串的长度，长度：2字节。
+第三个字节"bytes"，值为length个字节的具体数据，长度：length个字节。
+
+
+从   查看【（字节码）ByteCodeDemo】图片   中摘取一个cp_info结构
+查看【（字节码）CONSTANT_utf8_info的结构（左）及示例（右）】图片 （01 00 01 61）
+01是tag，00 01 表示字符串的长度，61转换成十进制是97表示a
 
