@@ -21,25 +21,31 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
+
     @BindView(R.id.recycler_view)
     RecyclerView andList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         verifyStoragePermissions(this);
 
         ArrayList<String> data = new ArrayList<>();
+
         data.add("Java IO Test");
         data.add("BottomView");
+        data.add("Activity Life Cycle");
+        data.add("Activity LaunchMode");
 
         LinearLayoutManager manager = new LinearLayoutManager(this);
         andList.setLayoutManager(manager);
         AndAdapter andAdapter = new AndAdapter(this, data);
         andList.setAdapter(andAdapter);
         andAdapter.setItemClickListener(this::dealItemClick);
+
     }
 
     private void dealItemClick(int i) {
@@ -51,6 +57,16 @@ public class MainActivity extends AppCompatActivity {
 
             case 1:{
                 startActivity(new Intent(MainActivity.this, BottomViewActivity.class));
+            }
+            break;
+
+            case 2:{
+                startActivity(new Intent(MainActivity.this, TestActivity1.class));
+            }
+            break;
+
+            case 3:{
+                startActivity(new Intent(MainActivity.this, LMActivity.class));
             }
             break;
         }

@@ -17,4 +17,5 @@
     <string name="object_input_stream">ObjectInputStream</string>
     <string name="button_writer_reader">Writer / Reader / InputStreamReader</string>
     <string name="random_access_file">RandomAccessFile</string>
+    <string name="next">Next</string>
 </resources>
